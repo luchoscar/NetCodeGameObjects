@@ -47,13 +47,13 @@ namespace HelloWorld
                 if (NetworkManager.Singleton.IsServer && !NetworkManager.Singleton.IsClient)
                 {
                     foreach (ulong uid in NetworkManager.Singleton.ConnectedClientsIds)
-                        NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(uid).GetComponent<CharacterMovementSync>().Move(Vector3.zero);
+                        NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(uid).GetComponent<CharacterMovement>().ForceUpdatePosition(Vector3.zero);
                 }
                 else
                 {
                     var playerObject = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
-                    var player = playerObject.GetComponent<CharacterMovementSync>();
-                    player.Move(Vector3.zero);
+                    var player = playerObject.GetComponent<CharacterMovement>();
+                    player.ForceUpdatePosition(Vector3.zero);
                 }
             }
         }
