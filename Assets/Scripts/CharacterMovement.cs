@@ -6,16 +6,19 @@ public class CharacterMovement : MonoBehaviour
     [SerializeField]
     private ClientAuthoritySync _clientTransformSync;
 
-	[SerializeField]
-	private ClientAuthoritySync.SyncOption[] _syncOptions;
-
 	private bool _isDirty = false;
 	private Vector3 _initialPosition = Vector3.zero;
+	private Quaternion _initialRotation = Quaternion.identity;
+	private Vector3 _initialLocalScale = Vector3.one;
 
-	public void ForceUpdatePosition(Vector3 position)
+	public void ForceUpdatePosition()
 	{
+		transform.position = _initialPosition;
+		transform.rotation = _initialRotation;
+		transform.localScale = _initialLocalScale;
+		
 		_clientTransformSync.SyncClientWithServer(
-			position, 
+			transform.position, 
 			transform.rotation, 
 			transform.localScale
 		);
@@ -34,6 +37,10 @@ public class CharacterMovement : MonoBehaviour
 		{
 			Camera.main.GetComponent<FollowTarget>().SetTarget(transform);
 		}
+
+		_initialPosition = transform.position;
+		_initialRotation = transform.rotation;
+		_initialLocalScale = transform.localScale;
 	}
 
 	private void Update()
