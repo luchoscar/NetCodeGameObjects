@@ -36,6 +36,10 @@ namespace Networking
             KeyInput.Right
         };
 
+		public void OnAnimatorMove()
+		{
+            SubmitPositionRequestClientAndHostRpc(Vector3.zero);
+        }
 
 		#region Network
 
@@ -45,6 +49,27 @@ namespace Networking
             Debug.Log($"LS Test => SendTo.Server {transform.position} => {newPoition}");
             //transform.position += _direction * _speed * Time.deltaTime;
             transform.position = newPoition;
+            Position.Value = newPoition;
+        }
+
+        public void Move(Vector3 newPosition)
+		{
+            SubmitPositionRequestClientAndHostRpc(newPosition);
+        }
+
+        [Rpc(SendTo.ClientsAndHost)]
+        private void SubmitPositionRequestClientAndHostRpc(Vector3 newPoition, RpcParams rpcParams = default)
+        {
+            if (!IsOwner)
+			{
+                return;
+			}
+
+            Debug.Log($"LS Test => SendTo.ClientsAndHost pre {transform.position} => {newPoition}");
+            //transform.position += _direction * _speed * Time.deltaTime;
+            _y = 0f;
+            transform.position = newPoition;
+            Debug.Log($"LS Test => SendTo.ClientsAndHost post {transform.position} => {newPoition}");
         }
 
         public override void OnNetworkSpawn()
@@ -56,24 +81,30 @@ namespace Networking
                 Camera.main.GetComponent<FollowTarget>().SetTarget(transform);
             }
 
-            //Position.Value = transform.position;
+            Position.Value = transform.position;
         }
 
-		#endregion
+        #endregion
 
+        float _y = 0;
 		private void Update()
         {
             if (IsOwner)
             {
-                float theta = Time.frameCount / 10.0f;
-                transform.position = new Vector3((float)Math.Cos(theta), 0.0f, (float)Math.Sin(theta));
+                _y += 0.5f * Time.deltaTime; ;
+                float theta = Time.frameCount / 10.0f * 0.25f;
+                transform.position = new Vector3((float)Math.Cos(theta), _y, (float)Math.Sin(theta));
+                
                 SubmitPositionRequestServerRpc(transform.position);
                 if (TrySetInputDirection())
                 {
 
                     SubmitPositionRequestServerRpc(transform.position);
                 }
-            }
+            } else
+			{
+                transform.position = Position.Value;
+			}
 
             //transform.position = Position.Value;
         }
