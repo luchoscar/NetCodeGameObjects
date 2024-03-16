@@ -4,10 +4,10 @@ using UnityEngine;
 public class CharacterMovement : MonoBehaviour
 {
     [SerializeField]
-    private ClientOwnerSync _clientTransformSync;
+    private ClientAuthoritySync _clientTransformSync;
 
 	[SerializeField]
-	private ClientOwnerSync.SyncOption[] _syncOptions;
+	private ClientAuthoritySync.SyncOption[] _syncOptions;
 
 	private bool _isDirty = false;
 	private Vector3 _initialPosition = Vector3.zero;
@@ -42,7 +42,7 @@ public class CharacterMovement : MonoBehaviour
 		{
 			transform.position += Vector3.one * 0.5f * Time.deltaTime;
 			_isDirty = true;
-		} else if (_clientTransformSync.Owner != ClientOwnerSync.OwnerType.Server)
+		} else if (_clientTransformSync.Owner != ClientAuthoritySync.OwnerType.Server)
 		{
 			transform.position = _clientTransformSync.GetPositionSync();
 			transform.rotation = _clientTransformSync.GetRotationSync();

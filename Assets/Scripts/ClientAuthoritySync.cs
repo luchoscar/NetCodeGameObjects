@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Networking.ClientAutority
 {
-    public class ClientOwnerSync : NetworkBehaviour
+    public class ClientAuthoritySync : NetworkBehaviour
     {
         public NetworkVariable<Vector3> PositionSync = new NetworkVariable<Vector3>();
         public NetworkVariable<Quaternion> RotationSync = new NetworkVariable<Quaternion>();
