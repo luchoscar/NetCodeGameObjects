@@ -10,12 +10,7 @@ namespace Networking.ClientAutority
         public NetworkVariable<Quaternion> RotationSync = new NetworkVariable<Quaternion>();
         public NetworkVariable<Vector3> LocalScaleSync = new NetworkVariable<Vector3>();
 
-        public enum ProcessType
-		{
-            Server,
-            Host,
-            Client
-		}
+        private IServiceProvider _provider = null;
 
         public ProcessType Process
         {
@@ -37,25 +32,19 @@ namespace Networking.ClientAutority
         {
             _onSyncTransform = callback;
         }
-        /*
-        public void RemoveTransformListener(Action<Vector3, Quaternion, Vector3> eventListener)
-        {
-            _onSyncTransformEvent -= eventListener;
-        }
-        */
+
         #endregion
 
         #region Setup
 
         public override void OnNetworkSpawn()
         {
-            if (IsOwner)
-            {
-                transform.name += "_Owner";
-                IPlayableCharacter playable = transform.GetComponent<IPlayableCharacter>();
-                if (playable != null)
-				{
-                    playable.SetupAsLocalPlayer();
+            IPlayableCharacter playable = transform.GetComponent<IPlayableCharacter>();
+            playable.Initialize(_provider);
+            if (playable != null) {
+                if (IsOwner)
+                {
+                    transform.name += "_Owner";
                 }
             }
         }
@@ -120,15 +109,31 @@ namespace Networking.ClientAutority
             RpcParams rpcParams = default
         )
         {
+            PositionSync.Value = positionSync;
+            RotationSync.Value = rotationSync;
+            LocalScaleSync.Value = localScaleSync;
+
             _onSyncTransform?.Invoke(
                 positionSync,
                 rotationSync,
                 localScaleSync
             );
+        }
 
-            PositionSync.Value = positionSync;
-            RotationSync.Value = rotationSync;
-            LocalScaleSync.Value = localScaleSync;
+		#endregion
+
+		#region Monobehavior
+
+		private void Awake()
+		{
+            _provider = GameObject.FindFirstObjectByType<GameManager>();
+        }
+
+        public override void OnDestroy()
+		{
+            _provider = null;
+
+            base.OnDestroy();
         }
 
 		#endregion

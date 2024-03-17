@@ -1,38 +1,44 @@
+
 using System;
 using UnityEngine;
 
-
-public class InputHandler : MonoBehaviour
+public class InputService : IInput
 {
     private KeyInput _inputCollected = KeyInput.None;
-    private readonly KeyInput[] _inputs = new KeyInput[]
-    {
-            KeyInput.Up,
-            KeyInput.Down,
-            KeyInput.Left,
-            KeyInput.Right
-    };
 
-    private event Action<KeyInput> _onInputChange;
+    private event Action<KeyInput> _onInputCollected;
 
-	#region Event Listeners
+    private ITicker _tick;
 
-	public void AddInputListener(Action<KeyInput> onInputChange)
+    public void Initialize(IServiceProvider provider)
 	{
-        _onInputChange += onInputChange;
+        _tick = provider.GetService<ITicker>();
+        _tick.AddListener(OnTickEvent);
+	}
+
+    ~InputService()
+	{
+        _tick?.RemoveListener(OnTickEvent);
+    }
+
+    #region IInput
+
+    public void AddInputListener(Action<KeyInput> onInputChange)
+    {
+        _onInputCollected += onInputChange;
     }
 
     public void RemoveInputListener(Action<KeyInput> onInputChange)
     {
-        _onInputChange -= onInputChange;
+        _onInputCollected -= onInputChange;
     }
 
-	#endregion
+    #endregion
 
-	#region Monobehavior
+    #region ITicker
 
-	private void Update()
-	{
+    private void OnTickEvent(float deltaTime)
+    {
         if (Input.GetKeyDown(KeyCode.W))
         {
             _inputCollected |= KeyInput.Up;
@@ -69,8 +75,8 @@ public class InputHandler : MonoBehaviour
             _inputCollected &= (~KeyInput.Right);
         }
 
-        _onInputChange?.Invoke(_inputCollected);
+        _onInputCollected?.Invoke(_inputCollected);
     }
 
-	#endregion
+    #endregion
 }

@@ -29,7 +29,6 @@ public class FollowTarget : MonoBehaviour
         _sqrSnapDistance = _snapDistance * _snapDistance;
     }
 
-	// Update is called once per frame
 	private void Update()
     {
         if (_target == null)

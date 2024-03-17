@@ -1,11 +1,6 @@
 using Networking.ClientAutority;
 using UnityEngine;
 
-public interface IPlayableCharacter
-{
-	void SetupAsLocalPlayer();
-}
-
 public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 {
     [SerializeField]
@@ -17,7 +12,8 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 	private Vector3 _direction = Vector3.zero;
 	private Vector3 _velocity = Vector3.zero;
 
-	private InputHandler _inputHandler;
+	private IInput _input;
+	private ITicker _ticker;
 
 	private bool _isDirty = false;
 	private Vector3 _initialPosition = Vector3.zero;
@@ -25,11 +21,6 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 	private Vector3 _initialLocalScale = Vector3.one;
 
 	#region Monobehavior
-
-	private void Awake()
-	{
-		_clientTransformSync.SetSyncTransformCallback(OnTransformSyncEvent);
-	}
 
 	private void Start()
 	{
@@ -43,13 +34,24 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 		_initialLocalScale = transform.localScale;
 	}
 
-	private void Update()
+	private void OnDestroy()
+	{
+		_input?.RemoveInputListener(OnInputEvent);
+		_ticker?.RemoveListener(OnTickEvent);
+	}
+
+	#endregion
+
+	#region ITicker listeners
+
+	private void OnTickEvent(float deltaTime)
 	{
 		if (_clientTransformSync.IsOwner)
 		{
-			transform.position += _direction * _movementSpeed * Time.deltaTime;
+			transform.position += _direction * _movementSpeed * deltaTime;
 			_isDirty = true;
-		} else if (_clientTransformSync.Process != ClientAuthoritySync.ProcessType.Server)
+		}
+		else if (_clientTransformSync.Process != ProcessType.Server)
 		{
 			transform.position = _clientTransformSync.GetPositionSync();
 			transform.rotation = _clientTransformSync.GetRotationSync();
@@ -62,18 +64,10 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 				transform.position,
 				transform.rotation,
 				transform.localScale,
-				Time.deltaTime
+				deltaTime
 			);
 
 			_isDirty = false;
-		}	
-	}
-
-	private void OnDestroy()
-	{
-		if (_inputHandler != null)
-		{
-			_inputHandler.RemoveInputListener(OnInputChangeEvent);
 		}
 	}
 
@@ -81,10 +75,20 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 
 	#region IPlayableCharacter
 
-	public void SetupAsLocalPlayer()
+	public void Initialize(IServiceProvider provider)
 	{
-		_inputHandler = gameObject.AddComponent<InputHandler>();
-		_inputHandler.AddInputListener(OnInputChangeEvent);
+		if (_clientTransformSync.IsOwner
+			&& _clientTransformSync.Process != ProcessType.Server
+		)
+		{
+			_input = provider.GetService<IInput>();
+			_input.AddInputListener(OnInputEvent);
+		}
+
+		_ticker = provider.GetService<ITicker>();
+		_ticker.AddListener(OnTickEvent);
+
+		_clientTransformSync.SetSyncTransformCallback(OnTransformSyncEvent);
 	}
 
 	#endregion
@@ -104,7 +108,7 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 
 	public void ForceServerResetTransform()
 	{
-		if (_clientTransformSync.Process == ClientAuthoritySync.ProcessType.Server)
+		if (_clientTransformSync.Process == ProcessType.Server)
 		{
 			transform.position = _initialPosition;
 			transform.rotation = _initialRotation;
@@ -133,15 +137,17 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 	}
 
 	#endregion
-	
-	private void OnInputChangeEvent(KeyInput inputCollected)
+
+	#region IInput listeners
+
+	private void OnInputEvent(KeyInput inputCollected)
 	{
 		_direction = Vector3.zero;
 
 		foreach (KeyInput input in System.Enum.GetValues(typeof(KeyInput)))
 		{
 			KeyInput keyInput = input & inputCollected;
-			Debug.Log($"keyInput: {keyInput}");
+
 			switch (keyInput)
 			{
 				case KeyInput.Up:
@@ -162,4 +168,6 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 			}
 		}
 	}
+
+	#endregion
 }

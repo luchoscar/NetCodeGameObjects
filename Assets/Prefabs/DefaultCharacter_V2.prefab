@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 2519913985936957313}
   - component: {fileID: 4219402444989996356}
   - component: {fileID: 8959477971040947746}
-  - component: {fileID: 338461151577880688}
   m_Layer: 0
   m_Name: Cube
   m_TagString: Untagged
@@ -84,27 +83,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &338461151577880688
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1773790805618279381}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &5089434815459193210
 GameObject:
   m_ObjectHideFlags: 0
@@ -281,9 +259,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70a177188f33a6643ac44d80e207d047, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SyncOptions:
-    m_InternalValue: []
-  _syncOptions: 
+  PositionSync:
+    m_InternalValue: {x: 0, y: 0, z: 0}
+  RotationSync:
+    m_InternalValue: {x: 0, y: 0, z: 0, w: 0}
+  LocalScaleSync:
+    m_InternalValue: {x: 0, y: 0, z: 0}
 --- !u!114 &2960872592299335318
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -297,4 +278,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _clientTransformSync: {fileID: 7072927265839095591}
-  _syncOptions: 00000000
+  _movementSpeed: 0.5
