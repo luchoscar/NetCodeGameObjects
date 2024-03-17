@@ -13,8 +13,7 @@
 ## Challenges
 ### Validating object movements
 Servers simulates objects movemet when receving a request.  
-Validation time depends on the amount of objects to validate.  Worst case can be of O(n^2).  
-This can be optimized by:
+Validation time depends on the amount of objects to validate.  Worst case can be of O(n^2) which can beptimized by:
 - Implementing spacial partition to reduce checks, or
 - Running physics, server side only, to use collision detection to signal invalid potential movements
 ### Character rewining due to server correction
