@@ -11,7 +11,7 @@ public class CharacterMovement : MonoBehaviour
 	private Quaternion _initialRotation = Quaternion.identity;
 	private Vector3 _initialLocalScale = Vector3.one;
 
-	public void ForceUpdatePosition()
+	public void ForceResetTransform()
 	{
 		transform.position = _initialPosition;
 		transform.rotation = _initialRotation;
