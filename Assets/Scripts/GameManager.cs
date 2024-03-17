@@ -46,6 +46,8 @@ public class GameManager : MonoBehaviour, IServiceProvider
     {
         DontDestroyOnLoad(this.gameObject);
 
+        AddService<ISimulation, SimulationService>();
+
         _tick = AddService<ITicker, TickService>();
         InputService inputService = AddService<IInput, InputService>();
         inputService.Initialize(this);

@@ -11,6 +11,7 @@ namespace Networking.ClientAutority
         public NetworkVariable<Vector3> LocalScaleSync = new NetworkVariable<Vector3>();
 
         private IServiceProvider _provider = null;
+        private ISimulation _simulation = null;
 
         public ProcessType Process
         {
@@ -25,10 +26,10 @@ namespace Networking.ClientAutority
         }
 
         private Action<Vector3, Quaternion, Vector3> _onSyncTransform;
-        
-		#region Events
 
-		public void SetSyncTransformCallback(Action<Vector3, Quaternion, Vector3> callback)
+        #region Callbacks
+
+        public void SetSyncTransformCallback(Action<Vector3, Quaternion, Vector3> callback)
         {
             _onSyncTransform = callback;
         }
@@ -37,16 +38,31 @@ namespace Networking.ClientAutority
 
         #region Setup
 
+        public override void OnNetworkDespawn()
+		{
+            _simulation?.RemoveSimulationObject(OwnerClientId);
+        }
+
         public override void OnNetworkSpawn()
         {
+            if (_simulation == null)
+			{
+                _simulation = _provider.GetService<ISimulation>();
+
+            }
+
             IPlayableCharacter playable = transform.GetComponent<IPlayableCharacter>();
-            playable.Initialize(_provider);
             if (playable != null) {
+                playable.Initialize(_provider);
+
+                transform.name += $"_{OwnerClientId}";
                 if (IsOwner)
                 {
                     transform.name += "_Owner";
                 }
             }
+
+            _simulation?.AddSimulationObject(OwnerClientId, playable as ISimulationObject);
         }
 
 		#endregion
@@ -88,15 +104,13 @@ namespace Networking.ClientAutority
         public void SyncServerWithClient(
             Vector3 positionSync,
             Quaternion rotationSync,
-            Vector3 localScaleSync,
-            float deltaTime
+            Vector3 localScaleSync
         )
 		{
             ServerSyncTransformRpc(
                 positionSync,
                 rotationSync,
-                localScaleSync,
-                deltaTime
+                localScaleSync
             );
         }
 
@@ -105,10 +119,24 @@ namespace Networking.ClientAutority
             Vector3 positionSync,
             Quaternion rotationSync,
             Vector3 localScaleSync,
-            float deltaTime,
             RpcParams rpcParams = default
         )
         {
+            bool validMove = _simulation.ValidateMove(
+                OwnerClientId,
+                positionSync,
+                out Vector3 validatedPosition
+            );
+
+            if (!validMove)
+            {
+                positionSync = validatedPosition;
+                ClientAndHostRewindRpc(
+                    OwnerClientId,
+                    positionSync
+                );
+            }
+
             PositionSync.Value = positionSync;
             RotationSync.Value = rotationSync;
             LocalScaleSync.Value = localScaleSync;
@@ -120,18 +148,34 @@ namespace Networking.ClientAutority
             );
         }
 
-		#endregion
+        [Rpc(SendTo.ClientsAndHost)]
+        private void ClientAndHostRewindRpc(
+            ulong clientId,
+            Vector3 syncPosition,
+            RpcParams rpcParams = default
+        )
+        {
+           if (OwnerClientId == clientId)
+			{
+                transform.position = syncPosition;
+			}
+        }
 
-		#region Monobehavior
+        #endregion
 
-		private void Awake()
+        #region Monobehavior
+
+        private void Awake()
 		{
             _provider = GameObject.FindFirstObjectByType<GameManager>();
+            _simulation = _provider.GetService<ISimulation>();
+
         }
 
         public override void OnDestroy()
 		{
             _provider = null;
+            _simulation = null;
 
             base.OnDestroy();
         }

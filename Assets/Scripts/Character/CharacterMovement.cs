@@ -1,7 +1,7 @@
 using Networking.ClientAutority;
 using UnityEngine;
 
-public class CharacterMovement : MonoBehaviour, IPlayableCharacter
+public class CharacterMovement : MonoBehaviour, IPlayableCharacter, ISimulationObject
 {
     [SerializeField]
     private ClientAuthoritySync _clientTransformSync;
@@ -15,7 +15,6 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 	private IInput _input;
 	private ITicker _ticker;
 
-	private bool _isDirty = false;
 	private Vector3 _initialPosition = Vector3.zero;
 	private Quaternion _initialRotation = Quaternion.identity;
 	private Vector3 _initialLocalScale = Vector3.one;
@@ -42,6 +41,12 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 
 	#endregion
 
+	#region ISimulationObject
+
+	public Transform GetTransform() => this.transform;
+
+	#endregion
+
 	#region ITicker listeners
 
 	private void OnTickEvent(float deltaTime)
@@ -49,25 +54,17 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 		if (_clientTransformSync.IsOwner)
 		{
 			transform.position += _direction * _movementSpeed * deltaTime;
-			_isDirty = true;
+			_clientTransformSync.SyncServerWithClient(
+				transform.position,
+				transform.rotation,
+				transform.localScale
+			);
 		}
 		else if (_clientTransformSync.Process != ProcessType.Server)
 		{
 			transform.position = _clientTransformSync.GetPositionSync();
 			transform.rotation = _clientTransformSync.GetRotationSync();
 			transform.localScale = _clientTransformSync.GetLocalSync();
-		}
-
-		if (_isDirty)
-		{
-			_clientTransformSync.SyncServerWithClient(
-				transform.position,
-				transform.rotation,
-				transform.localScale,
-				deltaTime
-			);
-
-			_isDirty = false;
 		}
 	}
 
@@ -88,14 +85,14 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 		_ticker = provider.GetService<ITicker>();
 		_ticker.AddListener(OnTickEvent);
 
-		_clientTransformSync.SetSyncTransformCallback(OnTransformSyncEvent);
+		_clientTransformSync.SetSyncTransformCallback(OnServerTransformSyncCallback);
 	}
 
 	#endregion
 
 	#region Network Sync
 
-	private void OnTransformSyncEvent(
+	private void OnServerTransformSyncCallback(
 		Vector3 position,
 		Quaternion rotation, 
 		Vector3 localScale
@@ -104,6 +101,20 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 		transform.position = position;
 		transform.rotation = rotation;
 		transform.localScale = localScale;
+	}
+
+	public void OverrideClientPosition(Vector3 newPosition)
+	{
+		if (_clientTransformSync.Process != ProcessType.Server)
+		{
+			transform.position = newPosition;
+
+			_clientTransformSync.SyncClientWithServer(
+				transform.position,
+				transform.rotation,
+				transform.localScale
+			);
+		}
 	}
 
 	public void ForceServerResetTransform()
@@ -131,8 +142,7 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 		_clientTransformSync.SyncServerWithClient(
 			transform.position,
 			transform.rotation,
-			transform.localScale,
-			0f
+			transform.localScale
 		);
 	}
 
