@@ -1,7 +1,10 @@
 
 using UnityEngine;
 
-public interface ISimulationObject
+namespace Networking.ClientAutority
 {
-	Transform GetTransform();
+	public interface ISimulationObject
+	{
+		Transform GetTransform();
+	}
 }

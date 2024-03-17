@@ -41,7 +41,8 @@ public class FollowTarget : MonoBehaviour
 
         if (distanceToTarget.sqrMagnitude > _sqrSnapDistance)
 		{
-            transform.position += distanceToTarget.normalized * _adjustmentSpeed * Time.deltaTime;
+            Vector3 positionDelta = distanceToTarget.normalized * _adjustmentSpeed * Time.deltaTime;
+            transform.position += new Vector3(positionDelta.x, positionDelta.y, 0);
 		} else
 		{
             transform.position = targetPosition;
