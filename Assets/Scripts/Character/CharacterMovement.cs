@@ -1,34 +1,34 @@
 using Networking.ClientAutority;
 using UnityEngine;
 
-public class CharacterMovement : MonoBehaviour
+public interface IPlayableCharacter
+{
+	void SetupAsLocalPlayer();
+}
+
+public class CharacterMovement : MonoBehaviour, IPlayableCharacter
 {
     [SerializeField]
     private ClientAuthoritySync _clientTransformSync;
+
+	[SerializeField]
+	private float _movementSpeed = 0.5f;
+	
+	private Vector3 _direction = Vector3.zero;
+	private Vector3 _velocity = Vector3.zero;
+
+	private InputHandler _inputHandler;
 
 	private bool _isDirty = false;
 	private Vector3 _initialPosition = Vector3.zero;
 	private Quaternion _initialRotation = Quaternion.identity;
 	private Vector3 _initialLocalScale = Vector3.one;
 
-	public void ForceResetTransform()
-	{
-		transform.position = _initialPosition;
-		transform.rotation = _initialRotation;
-		transform.localScale = _initialLocalScale;
-		
-		_clientTransformSync.SyncClientWithServer(
-			transform.position, 
-			transform.rotation, 
-			transform.localScale
-		);
-	}
-
 	#region Monobehavior
 
 	private void Awake()
 	{
-		_clientTransformSync.AddTransformListener(OnTransformSyncEvent);
+		_clientTransformSync.SetSyncTransformCallback(OnTransformSyncEvent);
 	}
 
 	private void Start()
@@ -47,24 +47,22 @@ public class CharacterMovement : MonoBehaviour
 	{
 		if (_clientTransformSync.IsOwner)
 		{
-			transform.position += Vector3.one * 0.5f * Time.deltaTime;
+			transform.position += _direction * _movementSpeed * Time.deltaTime;
 			_isDirty = true;
-		} else if (_clientTransformSync.Owner != ClientAuthoritySync.OwnerType.Server)
+		} else if (_clientTransformSync.Process != ClientAuthoritySync.ProcessType.Server)
 		{
 			transform.position = _clientTransformSync.GetPositionSync();
 			transform.rotation = _clientTransformSync.GetRotationSync();
 			transform.localScale = _clientTransformSync.GetLocalSync();
 		}
-	}
 
-	private void FixedUpdate()
-	{
 		if (_isDirty)
 		{
 			_clientTransformSync.SyncServerWithClient(
 				transform.position,
 				transform.rotation,
-				transform.localScale
+				transform.localScale,
+				Time.deltaTime
 			);
 
 			_isDirty = false;
@@ -73,13 +71,25 @@ public class CharacterMovement : MonoBehaviour
 
 	private void OnDestroy()
 	{
-		if (_clientTransformSync != null)
+		if (_inputHandler != null)
 		{
-			_clientTransformSync.RemoveTransformListener(OnTransformSyncEvent);
+			_inputHandler.RemoveInputListener(OnInputChangeEvent);
 		}
 	}
 
 	#endregion
+
+	#region IPlayableCharacter
+
+	public void SetupAsLocalPlayer()
+	{
+		_inputHandler = gameObject.AddComponent<InputHandler>();
+		_inputHandler.AddInputListener(OnInputChangeEvent);
+	}
+
+	#endregion
+
+	#region Network Sync
 
 	private void OnTransformSyncEvent(
 		Vector3 position,
@@ -90,5 +100,66 @@ public class CharacterMovement : MonoBehaviour
 		transform.position = position;
 		transform.rotation = rotation;
 		transform.localScale = localScale;
+	}
+
+	public void ForceServerResetTransform()
+	{
+		if (_clientTransformSync.Process == ClientAuthoritySync.ProcessType.Server)
+		{
+			transform.position = _initialPosition;
+			transform.rotation = _initialRotation;
+			transform.localScale = _initialLocalScale;
+
+			_clientTransformSync.SyncClientWithServer(
+				transform.position,
+				transform.rotation,
+				transform.localScale
+			);
+		}
+	}
+
+	public void ForceClientResetTransform()
+	{
+		transform.position = _initialPosition;
+		transform.rotation = _initialRotation;
+		transform.localScale = _initialLocalScale;
+
+		_clientTransformSync.SyncServerWithClient(
+			transform.position,
+			transform.rotation,
+			transform.localScale,
+			0f
+		);
+	}
+
+	#endregion
+	
+	private void OnInputChangeEvent(KeyInput inputCollected)
+	{
+		_direction = Vector3.zero;
+
+		foreach (KeyInput input in System.Enum.GetValues(typeof(KeyInput)))
+		{
+			KeyInput keyInput = input & inputCollected;
+			Debug.Log($"keyInput: {keyInput}");
+			switch (keyInput)
+			{
+				case KeyInput.Up:
+					_direction += Vector3.up;
+					break;
+
+				case KeyInput.Down:
+					_direction -= Vector3.up;
+					break;
+
+				case KeyInput.Left:
+					_direction -= Vector3.right;
+					break;
+
+				case KeyInput.Right:
+					_direction += Vector3.right;
+					break;
+			}
+		}
 	}
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace HelloWorld
 {
-    public class HelloWorldManager : MonoBehaviour
+    public class NetworkGuiHelper : MonoBehaviour
     {
         void OnGUI()
         {
@@ -42,18 +42,28 @@ namespace HelloWorld
 
         static void SubmitNewPosition()
         {
-            if (GUILayout.Button(NetworkManager.Singleton.IsServer ? "Move" : "Request Position Change"))
+            if (GUILayout.Button(
+                NetworkManager.Singleton.IsServer 
+                    ? "Move" 
+                    : "Request Position Change"
+                )
+            )
             {
+                NetworkSpawnManager spawnManager = NetworkManager.Singleton.SpawnManager;
                 if (NetworkManager.Singleton.IsServer && !NetworkManager.Singleton.IsClient)
                 {
                     foreach (ulong uid in NetworkManager.Singleton.ConnectedClientsIds)
-                        NetworkManager.Singleton.SpawnManager.GetPlayerNetworkObject(uid).GetComponent<CharacterMovement>().ForceResetTransform();
+                    {
+                        NetworkObject networkObject = spawnManager.GetPlayerNetworkObject(uid);
+                        CharacterMovement character = networkObject.GetComponent<CharacterMovement>();
+                        character.ForceServerResetTransform();
+                    }
                 }
                 else
                 {
-                    var playerObject = NetworkManager.Singleton.SpawnManager.GetLocalPlayerObject();
-                    var player = playerObject.GetComponent<CharacterMovement>();
-                    player.ForceResetTransform();
+                    NetworkObject playerObject = spawnManager.GetLocalPlayerObject();
+                    CharacterMovement character = playerObject.GetComponent<CharacterMovement>();
+                    character.ForceClientResetTransform();
                 }
             }
         }

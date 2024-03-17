@@ -10,39 +10,39 @@ namespace Networking.ClientAutority
         public NetworkVariable<Quaternion> RotationSync = new NetworkVariable<Quaternion>();
         public NetworkVariable<Vector3> LocalScaleSync = new NetworkVariable<Vector3>();
 
-        public enum OwnerType
+        public enum ProcessType
 		{
             Server,
             Host,
             Client
 		}
 
-        public OwnerType Owner
+        public ProcessType Process
         {
             get
             {
                 return IsHost
-                    ? OwnerType.Host
+                    ? ProcessType.Host
                     : IsServer
-                        ? OwnerType.Server
-                        : OwnerType.Client;
+                        ? ProcessType.Server
+                        : ProcessType.Client;
             }
         }
 
-        private event Action<Vector3, Quaternion, Vector3> _onSyncTransformEvent;
+        private Action<Vector3, Quaternion, Vector3> _onSyncTransform;
         
 		#region Events
 
-		public void AddTransformListener(Action<Vector3, Quaternion, Vector3> eventListener)
+		public void SetSyncTransformCallback(Action<Vector3, Quaternion, Vector3> callback)
         {
-            _onSyncTransformEvent += eventListener;
+            _onSyncTransform = callback;
         }
-
+        /*
         public void RemoveTransformListener(Action<Vector3, Quaternion, Vector3> eventListener)
         {
             _onSyncTransformEvent -= eventListener;
         }
-
+        */
         #endregion
 
         #region Setup
@@ -52,6 +52,11 @@ namespace Networking.ClientAutority
             if (IsOwner)
             {
                 transform.name += "_Owner";
+                IPlayableCharacter playable = transform.GetComponent<IPlayableCharacter>();
+                if (playable != null)
+				{
+                    playable.SetupAsLocalPlayer();
+                }
             }
         }
 
@@ -84,7 +89,7 @@ namespace Networking.ClientAutority
             RpcParams rpcParams = default
         )
         {
-            _onSyncTransformEvent?.Invoke(
+            _onSyncTransform?.Invoke(
                 syncPosition,
                 syncRotation,
                 syncLocalScale
@@ -94,13 +99,15 @@ namespace Networking.ClientAutority
         public void SyncServerWithClient(
             Vector3 positionSync,
             Quaternion rotationSync,
-            Vector3 localScaleSync
+            Vector3 localScaleSync,
+            float deltaTime
         )
 		{
             ServerSyncTransformRpc(
                 positionSync,
                 rotationSync,
-                localScaleSync
+                localScaleSync,
+                deltaTime
             );
         }
 
@@ -109,10 +116,11 @@ namespace Networking.ClientAutority
             Vector3 positionSync,
             Quaternion rotationSync,
             Vector3 localScaleSync,
+            float deltaTime,
             RpcParams rpcParams = default
         )
         {
-            _onSyncTransformEvent?.Invoke(
+            _onSyncTransform?.Invoke(
                 positionSync,
                 rotationSync,
                 localScaleSync
@@ -124,6 +132,5 @@ namespace Networking.ClientAutority
         }
 
 		#endregion
-
 	}
 }
