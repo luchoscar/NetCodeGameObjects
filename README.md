@@ -19,8 +19,10 @@ Validation time depends on the amount of objects to validate.  Worst case can be
 ### Character rewining due to server correction
 Server correction can be very noticeable depending on what it is correcting (possition, instantiation, etc)
 This can be minimized by:
+- Blocking player input for a couple seconds and reset variables involved in muvement
 - Using animation transitions
 - Only rewining player's actions that do not have a high impact on player experience
+- Use a better prediction logic to anticipate collision 5-10 frames ahead 
   
 ## Client Controlls
 WASD to move character on XY-plane
