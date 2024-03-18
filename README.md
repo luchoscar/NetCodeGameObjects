@@ -3,13 +3,18 @@
 
 ## Architecture
 ### Client Authoritative with Server Validator
-- Fast feedback for players on input
+- WASD character input controll
+- Fast feedback on player input
 - Server validates if player can move to the desired positions.  Failing validation sends a request to force update the object's position
 - Low chance of cheating as server reverts an invalid client state
+- Rewind can be masked with animations/vfxs
 ### Single Access 
 - Service provider to allow classes to select required services
-- Sevices can be injected into their users via interfaces in case they need to be swaped 
-
+- Sevices can be injected into their users via interfaces in case they need to be swaped
+- Server provider is not a singleton and it needs to be stored within systems that instantiate objects that require services
+### Responsability Segregation
+- Separate character movement control from client/server sync to facilitate switching client/server architecture
+- Connect them via events/callbacks
 ## Challenges
 ### Validating object movements
 Servers simulates objects movemet when receving a request.  
@@ -22,8 +27,11 @@ This can be minimized by:
 - Blocking player input for a couple seconds and reset variables involved in muvement
 - Using animation transitions
 - Only rewining player's actions that do not have a high impact on player experience
-- Use a better prediction logic to anticipate collision 5-10 frames ahead 
-  
+- Use a better prediction logic to anticipate collision 5-10 frames ahead
+### Interacting with Headless Server
+- As is, server mode only processes NetCode requests and outputs to a log file
+- This can work around by having a netwrok component that listents and process external requests
+
 ## Client Controlls
 WASD to move character on XY-plane
 
