@@ -25,18 +25,18 @@ namespace Networking.ClientAutority
             }
         }
 
-        private Action<Vector3, Quaternion, Vector3> _onSyncTransform;
+        private Action _onSyncTransform;
 
         #region Callbacks
 
-        public void SetSyncTransformCallback(Action<Vector3, Quaternion, Vector3> callback)
+        public void SetSyncTransformCallback(Action callback)
         {
             _onSyncTransform = callback;
         }
 
         #endregion
 
-        #region Setup
+        #region Spawn and Despawn
 
         public override void OnNetworkDespawn()
 		{
@@ -48,7 +48,6 @@ namespace Networking.ClientAutority
             if (_simulation == null)
 			{
                 _simulation = _provider.GetService<ISimulation>();
-
             }
 
             IPlayableCharacter playable = transform.GetComponent<IPlayableCharacter>();
@@ -60,9 +59,15 @@ namespace Networking.ClientAutority
                 {
                     transform.name += "_Owner";
                 }
+
+                transform.position = _simulation?.GetValidRandomPosition() ?? Vector3.zero;
+
+                PositionSync.Value = transform.position;
+                RotationSync.Value = transform.rotation;
+                LocalScaleSync.Value = transform.localScale;
             }
 
-            _simulation?.AddSimulationObject(OwnerClientId, playable as ISimulationObject);
+            _simulation?.SetSimulationObject(OwnerClientId, playable as ISimulationObject);
         }
 
 		#endregion
@@ -72,34 +77,6 @@ namespace Networking.ClientAutority
 		public Vector3 GetPositionSync() => PositionSync.Value;
         public Quaternion GetRotationSync() => RotationSync.Value;
         public Vector3 GetLocalSync() => LocalScaleSync.Value;
-
-        public void SyncClientWithServer(
-            Vector3 syncPosition,
-            Quaternion syncRotation,
-            Vector3 syncLocalScale
-        )
-        {
-            ClientAndHostSyncTransformRpc(
-                syncPosition,
-                syncRotation,
-                syncLocalScale
-            );
-        }
-
-        [Rpc(SendTo.ClientsAndHost)]
-        private void ClientAndHostSyncTransformRpc(
-            Vector3 syncPosition,
-            Quaternion syncRotation,
-            Vector3 syncLocalScale,
-            RpcParams rpcParams = default
-        )
-        {
-            _onSyncTransform?.Invoke(
-                syncPosition,
-                syncRotation,
-                syncLocalScale
-            );
-        }
 
         public void SyncServerWithClient(
             Vector3 positionSync,
@@ -128,24 +105,17 @@ namespace Networking.ClientAutority
                 out Vector3 validatedPosition
             );
 
+            PositionSync.Value = validatedPosition;
+            RotationSync.Value = rotationSync;
+            LocalScaleSync.Value = localScaleSync;
+
             if (!validMove)
             {
-                positionSync = validatedPosition;
                 ClientAndHostRewindRpc(
                     OwnerClientId,
                     positionSync
                 );
             }
-
-            PositionSync.Value = positionSync;
-            RotationSync.Value = rotationSync;
-            LocalScaleSync.Value = localScaleSync;
-
-            _onSyncTransform?.Invoke(
-                positionSync,
-                rotationSync,
-                localScaleSync
-            );
         }
 
         [Rpc(SendTo.ClientsAndHost)]
@@ -155,10 +125,7 @@ namespace Networking.ClientAutority
             RpcParams rpcParams = default
         )
         {
-           if (OwnerClientId == clientId)
-			{
-                transform.position = syncPosition;
-			}
+            _onSyncTransform?.Invoke();
         }
 
         #endregion
@@ -169,7 +136,6 @@ namespace Networking.ClientAutority
 		{
             _provider = GameObject.FindFirstObjectByType<GameManager>();
             _simulation = _provider.GetService<ISimulation>();
-
         }
 
         public override void OnDestroy()

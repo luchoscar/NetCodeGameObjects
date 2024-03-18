@@ -12,7 +12,35 @@ namespace Networking.ClientAutority
 		private const float COLLISION_DISTANCE = 1.5f;
 		private const float SQR_COLLISION_DISTANCE = COLLISION_DISTANCE * COLLISION_DISTANCE;
 
-		public void AddSimulationObject(
+		#region ISimulation
+
+		public Vector3 GetValidRandomPosition()
+		{
+			Vector3 validPosition = Vector3.zero;
+			bool foundPosition = true;
+			do
+			{
+				Vector2 randomPosition = Random.insideUnitCircle;
+				validPosition = new Vector3(randomPosition.x, randomPosition.y);
+				validPosition = validPosition.normalized * 5f;
+
+				foreach (KeyValuePair<ulong, ISimulationObject> kvp in _simObjects)
+				{
+					Transform simOther = kvp.Value.GetTransform();
+					Vector3 distance = simOther.position - validPosition;
+					if (distance.sqrMagnitude <= SQR_COLLISION_DISTANCE)
+					{
+						foundPosition = false;
+						break;
+					}
+				}
+
+			} while (!foundPosition);
+
+			return validPosition;
+		}
+
+		public void SetSimulationObject(
 			ulong clientId,
 			ISimulationObject simulationObject
 		)
@@ -55,25 +83,34 @@ namespace Networking.ClientAutority
 
 				Transform simOther = kvp.Value.GetTransform();
 				Vector3 distance = simOther.position - simTransform.position;
-				if (distance.sqrMagnitude >= SQR_COLLISION_DISTANCE)
+				if (distance.sqrMagnitude > SQR_COLLISION_DISTANCE)
 				{
 					continue;
+				}
+
+				if (direction.sqrMagnitude > 0f)
+				{
+					direction.Normalize(); 
+				} else
+				{
+					direction = Vector3.right;
 				}
 
 				distance.Normalize();
-				direction.Normalize();
-				if (Vector3.Dot(distance, direction) > 0)
+				
+				float dotProduct = Vector3.Dot(distance, direction);
+				if (dotProduct >= 0)
 				{
-					continue;
+					direction = -direction;
 				}
 
-				direction = -direction;
-
-				validatedPosition = simOther.position + direction * COLLISION_DISTANCE;
+				validatedPosition = simOther.position + direction * SQR_COLLISION_DISTANCE;
 				return false;
 			}
 
 			return true;
 		}
+
+		#endregion
 	}
 }

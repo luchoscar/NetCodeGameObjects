@@ -4,7 +4,8 @@ namespace Networking.ClientAutority
 {
 	public interface ISimulation
 	{
-		void AddSimulationObject(
+		Vector3 GetValidRandomPosition();
+		void SetSimulationObject(
 			ulong clientId,
 			ISimulationObject simulationObject
 		);

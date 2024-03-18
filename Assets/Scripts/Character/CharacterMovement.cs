@@ -10,14 +10,11 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter, ISimulationO
 	private float _movementSpeed = 0.5f;
 	
 	private Vector3 _direction = Vector3.zero;
-	private Vector3 _velocity = Vector3.zero;
 
 	private IInput _input;
 	private ITicker _ticker;
-
-	private Vector3 _initialPosition = Vector3.zero;
-	private Quaternion _initialRotation = Quaternion.identity;
-	private Vector3 _initialLocalScale = Vector3.one;
+	
+	private bool _forceServerSync = false;
 
 	#region Monobehavior
 
@@ -27,10 +24,6 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter, ISimulationO
 		{
 			Camera.main.GetComponent<FollowTarget>().SetTarget(transform);
 		}
-
-		_initialPosition = transform.position;
-		_initialRotation = transform.rotation;
-		_initialLocalScale = transform.localScale;
 	}
 
 	private void OnDestroy()
@@ -51,7 +44,7 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter, ISimulationO
 
 	private void OnTickEvent(float deltaTime)
 	{
-		if (_clientTransformSync.IsOwner)
+		if (!_forceServerSync && _clientTransformSync.IsOwner)
 		{
 			transform.position += _direction * _movementSpeed * deltaTime;
 			_clientTransformSync.SyncServerWithClient(
@@ -60,11 +53,14 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter, ISimulationO
 				transform.localScale
 			);
 		}
-		else if (_clientTransformSync.Process != ProcessType.Server)
+		else 
 		{
 			transform.position = _clientTransformSync.GetPositionSync();
 			transform.rotation = _clientTransformSync.GetRotationSync();
 			transform.localScale = _clientTransformSync.GetLocalSync();
+
+			_direction = Vector3.zero;
+			_forceServerSync = false;
 		}
 	}
 
@@ -92,58 +88,9 @@ public class CharacterMovement : MonoBehaviour, IPlayableCharacter, ISimulationO
 
 	#region Network Sync
 
-	private void OnServerTransformSyncCallback(
-		Vector3 position,
-		Quaternion rotation, 
-		Vector3 localScale
-	)
+	private void OnServerTransformSyncCallback()
 	{
-		transform.position = position;
-		transform.rotation = rotation;
-		transform.localScale = localScale;
-	}
-
-	public void OverrideClientPosition(Vector3 newPosition)
-	{
-		if (_clientTransformSync.Process != ProcessType.Server)
-		{
-			transform.position = newPosition;
-
-			_clientTransformSync.SyncClientWithServer(
-				transform.position,
-				transform.rotation,
-				transform.localScale
-			);
-		}
-	}
-
-	public void ForceServerResetTransform()
-	{
-		if (_clientTransformSync.Process == ProcessType.Server)
-		{
-			transform.position = _initialPosition;
-			transform.rotation = _initialRotation;
-			transform.localScale = _initialLocalScale;
-
-			_clientTransformSync.SyncClientWithServer(
-				transform.position,
-				transform.rotation,
-				transform.localScale
-			);
-		}
-	}
-
-	public void ForceClientResetTransform()
-	{
-		transform.position = _initialPosition;
-		transform.rotation = _initialRotation;
-		transform.localScale = _initialLocalScale;
-
-		_clientTransformSync.SyncServerWithClient(
-			transform.position,
-			transform.rotation,
-			transform.localScale
-		);
+		_forceServerSync = true;
 	}
 
 	#endregion

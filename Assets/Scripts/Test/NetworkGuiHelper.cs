@@ -1,4 +1,5 @@
-using Networking;
+
+using Networking.ClientAutority;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -44,28 +45,38 @@ namespace HelloWorld
         {
             if (GUILayout.Button(
                 NetworkManager.Singleton.IsServer 
-                    ? "Move" 
-                    : "Request Position Change"
+                    ? "Validate All Clients" 
+                    : "Validate Client"
                 )
             )
             {
+                ISimulation simulation = GameObject.FindObjectOfType<GameManager>().GetService<ISimulation>();
                 NetworkSpawnManager spawnManager = NetworkManager.Singleton.SpawnManager;
                 if (NetworkManager.Singleton.IsServer && !NetworkManager.Singleton.IsClient)
                 {
                     foreach (ulong uid in NetworkManager.Singleton.ConnectedClientsIds)
                     {
                         NetworkObject networkObject = spawnManager.GetPlayerNetworkObject(uid);
-                        CharacterMovement character = networkObject.GetComponent<CharacterMovement>();
-                        character.ForceServerResetTransform();
+                        ValidatePosition(networkObject);
                     }
                 }
                 else
                 {
                     NetworkObject playerObject = spawnManager.GetLocalPlayerObject();
-                    CharacterMovement character = playerObject.GetComponent<CharacterMovement>();
-                    character.ForceClientResetTransform();
+                    ValidatePosition(playerObject);
                 }
             }
+        }
+
+        static void ValidatePosition(NetworkObject networkObject)
+		{
+            Transform transform = networkObject.transform;
+            ClientAuthoritySync characterSync = networkObject.GetComponent<ClientAuthoritySync>();
+            characterSync.SyncServerWithClient(
+                transform.position,
+                transform.rotation,
+                transform.localScale
+            );
         }
     }
 }
