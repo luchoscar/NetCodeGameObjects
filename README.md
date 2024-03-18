@@ -1,6 +1,11 @@
 # NetCodeGameObjects
  ArgusLabs 
 
+## Approach
+- Read available documentation on the system
+- Prototype basic client/server passing messages
+- Build project based on prototype
+  
 ## Architecture
 ### Client Authoritative with Server Validator
 - WASD character input controll
@@ -15,6 +20,7 @@
 ### Responsability Segregation
 - Separate character movement control from client/server sync to facilitate switching client/server architecture
 - Connect them via events/callbacks
+
 ## Challenges
 ### Validating object movements
 Servers simulates objects movemet when receving a request.  
@@ -30,7 +36,7 @@ This can be minimized by:
 - Use a better prediction logic to anticipate collision 5-10 frames ahead
 ### Interacting with Headless Server
 - As is, server mode only processes NetCode requests and outputs to a log file
-- This can work around by having a netwrok component that listents and process external requests
+- This can be worked around by having a netwrok component that listents and process external requests
 
 ## Client Controlls
 WASD to move character on XY-plane
